@@ -1,1 +1,465 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Moto Infinita Brasil</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#111;color:white;font-family:Arial;overflow:hidden;touch-action:none}
+canvas{width:100vw;height:100dvh;display:block}
+#hud{position:absolute;top:8px;left:8px;right:8px;display:flex;justify-content:space-between;gap:5px}
+.info{background:#111d;padding:9px;border-radius:10px;font-size:12px}
+#actions{position:absolute;top:55px;right:8px;display:flex;gap:6px}
+.small{padding:9px;border:1px solid #ffffff66;border-radius:9px;background:#20252ddd;color:white}
+#controls{display:none;position:absolute;bottom:14px;left:8px;right:8px;justify-content:space-between;align-items:end}
+.group{display:flex;gap:5px}
+.ctrl{width:59px;height:63px;border:1px solid #ffffff88;border-radius:15px;background:#171b20e8;color:white;font-size:10px;font-weight:bold}
+.gas{background:#188442e8}.brake{background:#a32a2ae8}.grau{background:#a66a0de8}
+#menu{position:absolute;inset:0;background:#090d0dec;display:flex;align-items:center;justify-content:center;padding:12px;overflow:auto}
+.panel{width:400px;max-width:100%;background:#1c2228;border:1px solid #555;border-radius:20px;padding:18px;text-align:center}
+h1{color:#ffd33d;margin:0 0 8px;font-size:28px}
+.motos{display:flex;gap:6px;margin:12px 0}
+.moto{flex:1;padding:8px 2px;background:#292e34;color:white;border:2px solid #555;border-radius:12px}
+.moto.active{border-color:#ffd33d}
+.moto svg{width:68px;max-width:100%;height:43px}
+.moto b{display:block;font-size:12px}
+select{width:100%;padding:12px;background:#292e34;color:white;border:1px solid #666;border-radius:10px;margin:8px 0 13px}
+#play{width:100%;padding:15px;background:#ffd33d;border:0;border-radius:12px;font-size:17px;font-weight:bold}
+.note{font-size:12px;color:#bbb;line-height:1.6;margin-top:12px}
+#message{position:absolute;top:37%;width:100%;text-align:center;font-size:28px;font-weight:bold;text-shadow:0 2px 5px black;pointer-events:none}
+@media(max-width:370px){.ctrl{width:51px;height:57px;font-size:9px}.info{font-size:10px;padding:7px}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+ <div class="info">🏆 <span id="score">0</span> m</div>
+ <div class="info">⚡ <span id="speed">0</span> km/h</div>
+ <div class="info" id="policeInfo">🚔 Tranquilo</div>
+</div>
+<div id="actions">
+ <button class="small" id="pause" onclick="togglePause()">⏸ PAUSAR</button>
+ <button class="small" onclick="restart()">↻ REINICIAR</button>
+</div>
+<div id="message"></div>
+
+<div id="controls">
+ <div class="group">
+  <button class="ctrl" onclick="changeLane(-1)">◀<br>ESQUERDA</button>
+  <button class="ctrl" onclick="changeLane(1)">▶<br>DIREITA</button>
+ </div>
+ <div class="group">
+  <button class="ctrl brake" id="brake">▼<br>FREIO</button>
+  <button class="ctrl grau" id="wheelie">🤘<br>GRAU</button>
+  <button class="ctrl gas" id="gas">▲<br>ACELERAR</button>
+ </div>
+</div>
+
+<div id="menu">
+ <div class="panel">
+  <h1>MOTO INFINITA 🇧🇷</h1>
+  <div>ESCOLHA SUA MOTO</div>
+  <div class="motos">
+   <button class="moto active" data-bike="CRF">
+    <svg viewBox="0 0 100 60">
+     <circle cx="22" cy="43" r="14" fill="#111" stroke="#aaa" stroke-width="4"/>
+     <circle cx="78" cy="43" r="14" fill="#111" stroke="#aaa" stroke-width="4"/>
+     <path d="M22 43 L42 20 L62 43 L78 43 M42 20 L78 18 L78 43" stroke="#e52b2b" stroke-width="6" fill="none"/>
+     <path d="M36 18 L62 18 L70 27 L44 28Z" fill="white"/>
+     <path d="M37 16 L28 6 L32 4 L45 17" stroke="#ddd" stroke-width="4"/>
+    </svg><b>CRF 230</b>
+   </button>
+   <button class="moto" data-bike="BROS">
+    <svg viewBox="0 0 100 60">
+     <circle cx="22" cy="43" r="14" fill="#111" stroke="#aaa" stroke-width="4"/>
+     <circle cx="78" cy="43" r="14" fill="#111" stroke="#aaa" stroke-width="4"/>
+     <path d="M22 43 L43 23 L62 43 L78 43 M43 23 L77 18 L78 43" stroke="#ddd" stroke-width="6" fill="none"/>
+     <path d="M39 21 L62 21 L70 29 L45 30Z" fill="#d32a27"/>
+     <path d="M37 19 L28 6 L33 4 L46 19" stroke="#ddd" stroke-width="4"/>
+    </svg><b>BROS 160</b>
+   </button>
+   <button class="moto" data-bike="CG">
+    <svg viewBox="0 0 100 60">
+     <circle cx="22" cy="43" r="14" fill="#111" stroke="#aaa" stroke-width="4"/>
+     <circle cx="78" cy="43" r="14" fill="#111" stroke="#aaa" stroke-width="4"/>
+     <path d="M22 43 L41 29 L61 43 L78 43 M41 29 L77 25 L78 43" stroke="#ddd" stroke-width="5" fill="none"/>
+     <path d="M39 25 L62 25 L69 32 L44 34Z" fill="#d42c25"/>
+     <path d="M40 25 L30 12 L34 9 L46 25" stroke="#ddd" stroke-width="4"/>
+    </svg><b>CG 125</b>
+   </button>
+  </div>
+  <label for="exhaust">ESCAPAMENTO</label>
+  <select id="exhaust">
+   <option value="original">Original</option>
+   <option value="chrome">Esportivo cromado</option>
+   <option value="trioval">Trioval</option>
+   <option value="black">Esportivo preto</option>
+  </select>
+  <button id="play" onclick="startGame()">🏍️ COMEÇAR A ANDAR</button>
+  <div class="note">Acelere, freie e empine!<br>Encontre ⭐ para despistar a polícia.</div>
+ </div>
+</div>
+
+<script>
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+let W,H,DPR;
+function resize(){
+ DPR=Math.min(devicePixelRatio||1,2);
+ W=innerWidth;H=innerHeight;
+ canvas.width=W*DPR;canvas.height=H*DPR;
+ ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+addEventListener('resize',resize);resize();
+
+let bike='CRF',exhaust='original';
+let active=false,paused=false,gameOver=false;
+let speed=0,dist=0,lane=1,targetLane=1;
+let road=0,objects=[],spawn=0,starTimer=0;
+let chased=false,wanted=0,wheelie=false;
+let gas=false,braking=false,last=0;
+let elapsed=0;
+
+document.querySelectorAll('.moto').forEach(b=>{
+ b.onclick=()=>{
+  document.querySelectorAll('.moto').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');bike=b.dataset.bike;
+ };
+});
+
+function startGame(){
+ bike=document.querySelector('.moto.active').dataset.bike;
+ exhaust=document.getElementById('exhaust').value;
+ document.getElementById('menu').style.display='none';
+ document.getElementById('controls').style.display='flex';
+ restart();
+}
+
+function restart(){
+ active=true;paused=false;gameOver=false;
+ speed=0;dist=0;lane=1;targetLane=1;road=0;
+ objects=[];spawn=0;starTimer=0;chased=false;wanted=0;
+ wheelie=false;gas=false;braking=false;elapsed=0;
+ document.getElementById('message').textContent='';
+ document.getElementById('pause').textContent='⏸ PAUSAR';
+ document.getElementById('controls').style.display='flex';
+ last=performance.now();
+}
+
+function togglePause(){
+ if(!active||gameOver)return;
+ paused=!paused;
+ document.getElementById('pause').textContent=
+ paused?'▶ CONTINUAR':'⏸ PAUSAR';
+ document.getElementById('message').textContent=
+ paused?'⏸ JOGO PAUSADO':'';
+ if(!paused)last=performance.now();
+}
+
+function changeLane(d){
+ if(active&&!paused&&!gameOver)
+ targetLane=Math.max(0,Math.min(2,targetLane+d));
+}
+
+function hold(id,callback){
+ const el=document.getElementById(id);
+ el.addEventListener('pointerdown',e=>{
+  e.preventDefault();callback(true);
+  try{el.setPointerCapture(e.pointerId)}catch(_){}
+ });
+ ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>
+ el.addEventListener(ev,e=>{e.preventDefault();callback(false)}));
+}
+hold('gas',v=>gas=v);
+hold('brake',v=>braking=v);
+hold('wheelie',v=>{
+ wheelie=v;
+ if(v&&active&&!paused)wanted+=8;
+});
+
+addEventListener('keydown',e=>{
+ if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key))e.preventDefault();
+ if(e.repeat)return;
+ if(e.key==='ArrowLeft'||e.key==='a')changeLane(-1);
+ if(e.key==='ArrowRight'||e.key==='d')changeLane(1);
+ if(e.key==='ArrowUp'||e.key==='w')gas=true;
+ if(e.key==='ArrowDown'||e.key==='s')braking=true;
+ if(e.key===' ')wheelie=true;
+});
+addEventListener('keyup',e=>{
+ if(e.key==='ArrowUp'||e.key==='w')gas=false;
+ if(e.key==='ArrowDown'||e.key==='s')braking=false;
+ if(e.key===' ')wheelie=false;
+});
+addEventListener('blur',()=>{gas=false;braking=false;wheelie=false});
+
+function rect(x,y,w,h,c){
+ ctx.fillStyle=c;ctx.fillRect(x,y,w,h);
+}
+function poly(points,c){
+ ctx.fillStyle=c;ctx.beginPath();
+ ctx.moveTo(points[0][0],points[0][1]);
+ points.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));
+ ctx.closePath();ctx.fill();
+}
+function txt(t,x,y,size,c='white'){
+ ctx.fillStyle=c;ctx.font='bold '+size+'px Arial';
+ ctx.textAlign='center';ctx.fillText(t,x,y);
+}
+function edges(y){
+ let p=Math.max(0,Math.min(1,(y-H*.34)/(H*.75)));
+ let width=W*(.12+p*.8);
+ return [W/2-width/2,W/2+width/2];
+}
+
+function drawBackground(){
+ let sky=ctx.createLinearGradient(0,0,0,H*.5);
+ sky.addColorStop(0,'#69bce8');sky.addColorStop(1,'#d6e3bc');
+ rect(0,0,W,H,'#73834c');rect(0,0,W,H*.4,sky);
+
+ poly([[0,H*.4],[0,H*.25],[W*.1,H*.14],[W*.2,H*.32],
+ [W*.35,H*.18],[W*.48,H*.36],[W*.65,H*.17],
+ [W*.78,H*.34],[W*.9,H*.16],[W,H*.28],[W,H*.4]],'#63775b');
+
+ // Casas e barracos nas laterais
+ for(let side=0;side<2;side++){
+  for(let i=0;i<11;i++){
+   let yy=H*.37+i*i*H*.006+(road*(.25+i*.035)%25);
+   if(yy>H*.72)continue;
+   let p=(yy-H*.35)/(H*.4);
+   let bw=14+p*44,bh=12+p*32;
+   let x=side===0?W*.5-W*(.13+p*.39)-bw:W*.5+W*(.13+p*.39);
+   let colors=['#a65d48','#d6b16d','#b9b7a5','#86644e','#cf8257'];
+   rect(x,yy-bh,bw,bh,colors[i%colors.length]);
+   poly([[x-3,yy-bh],[x+bw*.5,yy-bh-5-p*4],[x+bw+3,yy-bh]],'#67473a');
+   rect(x+bw*.2,yy-bh*.7,bw*.18,bh*.2,'#364b57');
+   rect(x+bw*.62,yy-bh*.7,bw*.18,bh*.2,'#364b57');
+  }
+ }
+
+ let h=H*.34;
+ rect(0,h,W,H-h,'#424545');
+ let n=22;
+ for(let i=0;i<n;i++){
+  let y=h+((i*36+road*1.6)%(H-h));
+  let p=(y-h)/(H-h);
+  let width=5+p*17;
+  let [l,r]=edges(y);
+  rect(l-width,y,width,Math.max(2,p*13),'#c6c4ad');
+  rect(r,y,width,Math.max(2,p*13),'#c6c4ad');
+ }
+ // Faixas da pista
+ for(let i=0;i<14;i++){
+  let y=h+((i*55+road*2)%(H-h));
+  let p=(y-h)/(H-h);
+  let [l,r]=edges(y);
+  for(let j=1;j<=2;j++)
+   rect(l+(r-l)*j/3-1,y,2+p*3,Math.max(3,p*25),'#e8e1c3');
+ }
+}
+
+function drawBike(x,y,scale){
+ ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);
+ let color=bike==='CRF'?'#e52b2b':bike==='BROS'?'#eeeeee':'#cf2929';
+ let dark='#202126';
+ // sombra
+ ctx.fillStyle='#0007';ctx.beginPath();ctx.ellipse(0,5,37,10,0,0,Math.PI*2);ctx.fill();
+
+ // roda traseira e dianteira
+ for(let wx of [-24,25]){
+  ctx.fillStyle='#101114';ctx.beginPath();ctx.ellipse(wx,0,10,17,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#b8bdc1';ctx.lineWidth=2;ctx.beginPath();
+  ctx.ellipse(wx,0,6,12,0,0,Math.PI*2);ctx.stroke();
+  ctx.strokeStyle='#777';ctx.lineWidth=1;
+  for(let a=0;a<4;a++){
+   let ang=a*Math.PI/2;
+   ctx.beginPath();ctx.moveTo(wx,0);
+   ctx.lineTo(wx+6*Math.cos(ang),12*Math.sin(ang));ctx.stroke();
+  }
+ }
+ // quadro
+ ctx.strokeStyle='#aaa';ctx.lineWidth=4;ctx.lineCap='round';
+ ctx.beginPath();ctx.moveTo(-24,0);ctx.lineTo(-8,-16);
+ ctx.lineTo(10,0);ctx.lineTo(25,0);ctx.moveTo(-8,-16);
+ ctx.lineTo(16,-19);ctx.lineTo(25,0);ctx.stroke();
+
+ // escapamento
+ ctx.strokeStyle=exhaust==='black'?'#171717':exhaust==='original'?'#777':'#e4e8eb';
+ ctx.lineWidth=exhaust==='trioval'?7:4;
+ ctx.beginPath();ctx.moveTo(-19,-5);ctx.lineTo(-7,-2);ctx.lineTo(3,2);ctx.stroke();
+ ctx.fillStyle=exhaust==='black'?'#111':exhaust==='original'?'#555':'#ddd';
+ ctx.fillRect(-22,-8,13,5);
+
+ // tanque, banco e carenagens
+ poly([[-13,-20],[1,-23],[14,-18],[9,-12],[-7,-12]],color);
+ poly([[-10,-24],[-2,-29],[10,-28],[14,-23],[-8,-22]],dark);
+ poly([[1,-20],[17,-21],[22,-12],[10,-11]],color);
+ if(bike!=='CG'){
+  poly([[12,-19],[20,-29],[26,-28],[22,-13]],'#ddd');
+  poly([[17,-22],[22,-29],[28,-28],[24,-21]],color);
+ }else{
+  ctx.fillStyle='#ddd';ctx.fillRect(21,-24,8,4);
+  ctx.fillStyle='#333';ctx.fillRect(24,-21,3,7);
+ }
+ // guidão e garfo
+ ctx.strokeStyle='#ddd';ctx.lineWidth=3;
+ ctx.beginPath();ctx.moveTo(18,-18);ctx.lineTo(25,-31);
+ ctx.lineTo(31,-32);ctx.stroke();
+ ctx.strokeStyle='#444';ctx.lineWidth=4;
+ ctx.beginPath();ctx.moveTo(-2,-21);ctx.lineTo(-8,-29);
+ ctx.lineTo(5,-29);ctx.stroke();
+ // piloto
+ ctx.strokeStyle='#24252b';ctx.lineWidth=6;
+ ctx.beginPath();ctx.moveTo(-2,-27);ctx.lineTo(8,-36);
+ ctx.lineTo(19,-29);ctx.stroke();
+ ctx.fillStyle='#25272d';ctx.beginPath();
+ ctx.arc(7,-42,7,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#ddd';ctx.beginPath();
+ ctx.arc(8,-43,6,Math.PI,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#111';ctx.fillRect(8,-43,7,3);
+ if(wheelie){
+  ctx.strokeStyle='#eee';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(-23,3);ctx.lineTo(-30,12);ctx.stroke();
+ }
+ ctx.restore();
+}
+
+function drawPolice(){
+ let x=W/2,y=H*.66;
+ // viatura vista de frente
+ ctx.save();ctx.translate(x,y);
+ ctx.fillStyle='#111';ctx.fillRect(-28,-29,56,61);
+ ctx.fillStyle='#eee';ctx.fillRect(-24,-26,48,49);
+ ctx.fillStyle='#20242b';ctx.fillRect(-18,-21,36,18);
+ ctx.fillStyle='#ddd';ctx.fillRect(-25,-3,50,14);
+ ctx.fillStyle='#1765c5';ctx.fillRect(-24,10,48,20);
+ ctx.fillStyle='#111';ctx.fillRect(-29,25,10,12);ctx.fillRect(19,25,10,12);
+ ctx.fillStyle='#f33';ctx.fillRect(-14,-34,13,5);
+ ctx.fillStyle='#36a0ff';ctx.fillRect(1,-34,13,5);
+ txt('POLÍCIA',0,7,8,'white');
+ ctx.restore();
+}
+
+function drawStar(x,y,s){
+ ctx.save();ctx.translate(x,y);ctx.scale(s,s);
+ ctx.fillStyle='#ffd22e';ctx.strokeStyle='#fff4a3';ctx.lineWidth=2;
+ ctx.beginPath();
+ for(let i=0;i<10;i++){
+  let a=-Math.PI/2+i*Math.PI/5,r=i%2===0?17:8;
+  if(i===0)ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r);
+  else ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+ }
+ ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+}
+
+function drawObjects(){
+ for(let o of objects){
+  let p=Math.max(.3,(o.y-H*.34)/(H*.7));
+  let x=W/2+(o.lane-1)*W*.23*p;
+  if(o.type==='star')drawStar(x,o.y,Math.max(.5,p));
+  else if(o.type==='car'){
+   let s=.3+p*.8;
+   ctx.save();ctx.translate(x,o.y);ctx.scale(s,s);
+   ctx.fillStyle='#222';ctx.fillRect(-25,-37,50,74);
+   ctx.fillStyle=o.color;ctx.fillRect(-22,-34,44,65);
+   ctx.fillStyle='#b5dce8';ctx.fillRect(-17,-25,34,18);
+   ctx.fillStyle='#111';ctx.fillRect(-17,5,34,13);
+   ctx.fillStyle='#f33';ctx.fillRect(-21,26,8,5);ctx.fillRect(13,26,8,5);
+   ctx.restore();
+  }else{
+   let s=.3+p*.8;
+   ctx.save();ctx.translate(x,o.y);ctx.scale(s,s);
+   ctx.fillStyle='#e8a829';ctx.fillRect(-19,-26,38,45);
+   ctx.fillStyle='#111';ctx.fillRect(-13,-20,26,14);
+   ctx.fillStyle='#ddd';ctx.fillRect(-22,14,44,5);
+   ctx.restore();
+  }
+ }
+}
+
+function spawnObject(){
+ let r=Math.random();
+ let type;
+ if(!chased&&wanted>15&&Math.random()<.24)type='star';
+ else if(r<.65)type='car';
+ else type='barrel';
+ objects.push({type,lane:Math.floor(Math.random()*3),y:H*.35,
+ color:['#cf3933','#3477a8','#b9b9b9','#d5aa33'][Math.floor(Math.random()*4)]});
+}
+
+function update(dt){
+ if(!active||paused||gameOver)return;
+ elapsed+=dt;
+ if(gas)speed=Math.min(180,speed+60*dt);
+ else speed=Math.max(45,speed-12*dt);
+ if(braking)speed=Math.max(0,speed-110*dt);
+ if(speed<1&&!gas)speed=0;
+
+ road+=speed*dt*.75;
+ dist+=speed*dt*.018;
+ wanted=Math.max(0,wanted-dt*1.4);
+ starTimer=Math.max(0,starTimer-dt);
+ lane+=(targetLane-lane)*Math.min(1,dt*10);
+
+ spawn-=dt;
+ if(spawn<=0){
+  spawnObject();spawn=.65+Math.random()*.65;
+ }
+ for(let o of objects)o.y+=speed*dt*(.8+o.y/H*.7);
+ for(let o of objects){
+  if(o.hit)continue;
+  let same=o.lane===Math.round(lane);
+  if(o.type==='star'&&o.y>H*.62&&o.y<H*.82&&same){
+   o.hit=true;wanted=0;chased=false;starTimer=2;
+   document.getElementById('message').textContent='⭐ POLÍCIA DESPISTADA!';
+   setTimeout(()=>{if(!paused)document.getElementById('message').textContent=''},1000);
+  }else if(o.type!=='star'&&o.y>H*.72&&o.y<H*.83&&same&&speed>45){
+   o.hit=true;speed*=.35;
+   document.getElementById('message').textContent='CUIDADO!';
+   setTimeout(()=>{if(!paused&&!gameOver)document.getElementById('message').textContent=''},650);
+  }
+ }
+ objects=objects.filter(o=>o.y<H+80&&!o.hit);
+
+ if(wheelie&&speed>30){
+  wanted+=dt*13;
+ }
+ if(wanted>22)chased=true;
+ if(wanted<1)chased=false;
+
+ document.getElementById('score').textContent=Math.floor(dist);
+ document.getElementById('speed').textContent=Math.floor(speed);
+ document.getElementById('policeInfo').textContent=
+ chased?'🚨 POLÍCIA ATRÁS!':'🚔 Tranquilo';
+}
+
+function draw(){
+ drawBackground();
+ drawObjects();
+ if(chased)drawPolice();
+
+ let x=W/2+(lane-1)*W*.23;
+ let y=H*.78;
+ let scale=Math.min(1.6,Math.max(.85,W/400));
+ drawBike(x,y,scale);
+
+ if(paused||!active){
+  if(!document.getElementById('menu').style.display.includes('flex')&&!gameOver)
+   txt('PAUSADO',W/2,H*.48,28);
+ }
+}
+
+function loop(now){
+ let dt=Math.min(.04,(now-last)/1000||0);
+ last=now;
+ if(!paused)update(dt);
+ draw();
+ requestAnimationFrame(loop);
+}
+requestAnimationFrame(now=>{last=now;loop(now)});
+</script>
+</body>
+</html>
+
