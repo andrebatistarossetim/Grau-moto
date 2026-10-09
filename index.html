@@ -4,6 +4,422 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Moto Brasil Infinita</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#222;color:white;font-family:Arial;overflow:hidden;touch-action:none}
+canvas{width:100vw;height:100dvh;display:block}
+#hud{position:absolute;top:8px;left:8px;right:8px;display:flex;justify-content:space-between;gap:5px}
+.tag{background:#111e;padding:9px 7px;border-radius:10px;font-size:12px;font-weight:bold}
+#topbuttons{position:absolute;right:8px;top:52px;display:flex;gap:5px}
+button{font-weight:bold;touch-action:none}
+.small{background:#20252de8;color:white;border:1px solid #777;border-radius:9px;padding:10px}
+#controls{position:absolute;bottom:12px;left:8px;right:8px;display:none;justify-content:space-between;align-items:end}
+.grp{display:flex;gap:5px}
+.ctrl{height:62px;min-width:51px;padding:5px;border-radius:14px;background:#181c20e8;color:white;border:1px solid #aaa;font-size:10px}
+.gas{background:#167c40e8}.brake{background:#a52c2ce8}.grau{background:#a56a13e8}
+#menu{position:absolute;inset:0;background:#090d0df2;display:flex;align-items:center;justify-content:center;padding:12px;overflow:auto}
+.panel{background:#1d232a;border:1px solid #555;border-radius:20px;padding:17px;text-align:center;width:410px;max-width:100%}
+h1{color:#ffcf35;margin:0 0 10px}
+.bikes{display:flex;gap:6px;margin:12px 0}
+.bike{flex:1;background:#30363c;color:white;border:2px solid #555;border-radius:10px;padding:6px 2px}
+.bike.active{border-color:#ffd33d}
+.bike svg{width:100%;height:49px}
+.bike b{display:block;font-size:12px}
+select,#play{width:100%;padding:13px;border-radius:10px;margin-top:9px}
+select{background:#30363c;color:white;border:1px solid #777}
+#play{background:#ffd33d;color:#111;border:0;font-size:17px}
+#msg{position:absolute;top:38%;width:100%;text-align:center;font-weight:bold;font-size:27px;text-shadow:0 3px 6px #000;pointer-events:none}
+.note{font-size:12px;color:#bbb;line-height:1.5;margin-top:10px}
+@media(max-width:380px){.ctrl{min-width:44px;height:56px;font-size:9px}.tag{font-size:10px;padding:7px 5px}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+ <div class="tag">🏆 <span id="score">0</span> m</div>
+ <div class="tag">⚡ <span id="speed">0</span> km/h</div>
+ <div class="tag" id="police">🚔 Livre</div>
+</div>
+<div id="topbuttons">
+ <button class="small" id="pause" onclick="pauseGame()">⏸ PAUSAR</button>
+ <button class="small" onclick="resetGame()">↻ REINICIAR</button>
+</div>
+<div id="msg"></div>
+<div id="controls">
+ <div class="grp">
+  <button class="ctrl" onclick="steer(-1)">◀<br>ESQUERDA</button>
+  <button class="ctrl" onclick="steer(1)">▶<br>DIREITA</button>
+ </div>
+ <div class="grp">
+  <button class="ctrl brake" id="brake">▼<br>FREIO</button>
+  <button class="ctrl grau" id="wheelie">♨<br>GRAU</button>
+  <button class="ctrl gas" id="gas">▲<br>ACELERAR</button>
+ </div>
+</div>
+<div id="menu">
+ <div class="panel">
+  <h1>🏍️ MOTO BRASIL</h1>
+  <div>ESCOLHA SUA MOTO</div>
+  <div class="bikes">
+   <button class="bike active" data-bike="CRF">
+    <svg viewBox="0 0 130 70">
+     <circle cx="25" cy="48" r="17" fill="#111" stroke="#aaa" stroke-width="4"/>
+     <circle cx="105" cy="48" r="17" fill="#111" stroke="#aaa" stroke-width="4"/>
+     <path d="M25 48 L48 23 L73 48 L105 48 L88 19" stroke="#ddd" stroke-width="5" fill="none"/>
+     <path d="M45 24 L72 20 L87 34 L61 38 L42 34Z" fill="#e33128"/>
+     <path d="M42 20 L64 17 L74 22 L48 26Z" fill="#111"/>
+     <path d="M87 19 L104 12 L111 14" stroke="#ccc" stroke-width="4"/>
+     <path d="M83 19 L94 6 L110 8 L105 18Z" fill="#e33128"/>
+    </svg><b>CRF 230</b>
+   </button>
+   <button class="bike" data-bike="BROS">
+    <svg viewBox="0 0 130 70">
+     <circle cx="25" cy="48" r="17" fill="#111" stroke="#aaa" stroke-width="4"/>
+     <circle cx="105" cy="48" r="17" fill="#111" stroke="#aaa" stroke-width="4"/>
+     <path d="M25 48 L47 27 L73 48 L105 48 L88 20" stroke="#ccc" stroke-width="5" fill="none"/>
+     <path d="M45 27 L71 24 L85 34 L61 38 L42 35Z" fill="#ddd"/>
+     <path d="M41 22 L65 20 L75 24 L47 29Z" fill="#222"/>
+     <path d="M86 20 L103 12 L111 14" stroke="#ccc" stroke-width="4"/>
+     <path d="M84 20 L94 8 L111 10 L105 19Z" fill="#d92d28"/>
+    </svg><b>BROS 160</b>
+   </button>
+   <button class="bike" data-bike="CG">
+    <svg viewBox="0 0 130 70">
+     <circle cx="25" cy="48" r="16" fill="#111" stroke="#aaa" stroke-width="4"/>
+     <circle cx="105" cy="48" r="16" fill="#111" stroke="#aaa" stroke-width="4"/>
+     <path d="M25 48 L46 31 L73 48 L105 48 L88 23" stroke="#ccc" stroke-width="5" fill="none"/>
+     <path d="M44 29 L71 28 L84 37 L60 40 L42 36Z" fill="#d62d28"/>
+     <path d="M43 25 L65 23 L75 27 L48 31Z" fill="#222"/>
+     <path d="M86 23 L104 15 L111 17" stroke="#ccc" stroke-width="4"/>
+     <path d="M86 24 L94 12 L110 13 L105 22Z" fill="#eee"/>
+    </svg><b>CG 125</b>
+   </button>
+  </div>
+  <label>ESCAPAMENTO</label>
+  <select id="exhaust">
+   <option value="original">Original</option>
+   <option value="chrome">Esportivo cromado</option>
+   <option value="trioval">Trioval</option>
+   <option value="black">Esportivo preto</option>
+  </select>
+  <button id="play" onclick="startGame()">🏍️ COMEÇAR A ANDAR</button>
+  <div class="note">Visão lateral • Ruas e favelas • Polícia e estrela<br>Desvie dos carros e empine a moto!</div>
+ </div>
+</div>
+
+<script>
+const cv=document.getElementById('game'),c=cv.getContext('2d');
+let W,H,D=1;
+function resize(){
+ W=innerWidth;H=innerHeight;D=Math.min(devicePixelRatio||1,2);
+ cv.width=W*D;cv.height=H*D;c.setTransform(D,0,0,D,0,0);
+}
+addEventListener('resize',resize);resize();
+
+let bike='CRF',exhaust='original',running=false,paused=false;
+let speed=0,dist=0,playerY=.7,lean=0,wheelie=false;
+let gas=false,braking=false,objects=[],spawn=0,road=0;
+let wanted=0,chased=false,flash=0,last=0,invincible=0;
+
+document.querySelectorAll('.bike').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('.bike').forEach(x=>x.classList.remove('active'));
+ b.classList.add('active');bike=b.dataset.bike;
+});
+function startGame(){
+ bike=document.querySelector('.bike.active').dataset.bike;
+ exhaust=document.getElementById('exhaust').value;
+ document.getElementById('menu').style.display='none';
+ document.getElementById('controls').style.display='flex';
+ resetGame();
+}
+function resetGame(){
+ running=true;paused=false;speed=0;dist=0;playerY=.7;lean=0;
+ wheelie=false;gas=false;braking=false;objects=[];spawn=0;road=0;
+ wanted=0;chased=false;flash=0;invincible=0;
+ document.getElementById('pause').textContent='⏸ PAUSAR';
+ document.getElementById('msg').textContent='';
+ document.getElementById('controls').style.display='flex';
+ last=performance.now();
+}
+function pauseGame(){
+ if(!running)return;
+ paused=!paused;
+ document.getElementById('pause').textContent=paused?'▶ CONTINUAR':'⏸ PAUSAR';
+ document.getElementById('msg').textContent=paused?'JOGO PAUSADO':'';
+ if(!paused)last=performance.now();
+}
+function steer(d){if(running&&!paused){lean=Math.max(-1,Math.min(1,lean+d*.4));}}
+function hold(id,fn){
+ const el=document.getElementById(id);
+ el.addEventListener('pointerdown',e=>{
+  e.preventDefault();fn(true);
+  try{el.setPointerCapture(e.pointerId)}catch(_){}
+ });
+ ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>
+ el.addEventListener(ev,e=>{e.preventDefault();fn(false)}));
+}
+hold('gas',v=>gas=v);
+hold('brake',v=>braking=v);
+hold('wheelie',v=>{wheelie=v;if(v&&running&&!paused)wanted+=7});
+addEventListener('keydown',e=>{
+ if(e.key==='ArrowLeft'||e.key==='a')steer(-1);
+ if(e.key==='ArrowRight'||e.key==='d')steer(1);
+ if(e.key==='ArrowUp'||e.key==='w')gas=true;
+ if(e.key==='ArrowDown'||e.key==='s')braking=true;
+ if(e.key===' ')wheelie=true;
+});
+addEventListener('keyup',e=>{
+ if(['ArrowUp','w'].includes(e.key))gas=false;
+ if(['ArrowDown','s'].includes(e.key))braking=false;
+ if(e.key===' ')wheelie=false;
+});
+addEventListener('blur',()=>{gas=false;braking=false;wheelie=false});
+
+function box(x,y,w,h,col){c.fillStyle=col;c.fillRect(x,y,w,h)}
+function line(x,y,x2,y2,col,width=2){
+ c.strokeStyle=col;c.lineWidth=width;c.beginPath();c.moveTo(x,y);c.lineTo(x2,y2);c.stroke();
+}
+function ellipse(x,y,rx,ry,col){
+ c.fillStyle=col;c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fill();
+}
+function polygon(points,col){
+ c.fillStyle=col;c.beginPath();c.moveTo(...points[0]);
+ for(let p of points.slice(1))c.lineTo(...p);
+ c.closePath();c.fill();
+}
+function label(t,x,y,size,col='white'){
+ c.fillStyle=col;c.font='bold '+size+'px Arial';c.textAlign='center';c.fillText(t,x,y);
+}
+
+function background(){
+ let sky=c.createLinearGradient(0,0,0,H*.55);
+ sky.addColorStop(0,'#66bde8');sky.addColorStop(1,'#d4e3c2');
+ box(0,0,W,H,'#697e4d');box(0,0,W,H*.45,sky);
+
+ // Morros e casas
+ polygon([[0,H*.43],[0,H*.25],[W*.13,H*.12],[W*.25,H*.42],[W*.42,H*.2],[W*.56,H*.43],[W*.73,H*.15],[W*.9,H*.43],[W,H*.27],[W,H*.45]],'#63775b');
+ for(let side=0;side<2;side++){
+  for(let i=0;i<13;i++){
+   let y=H*.42+i*28+(road*.4%28);
+   let depth=(y-H*.4)/H;
+   if(y>H*.72)continue;
+   let w=18+depth*45,h=17+depth*27;
+   let x=side===0?W*.48-W*(.1+depth*.35)-w:W*.52+W*(.1+depth*.35);
+   box(x,y-h,w,h,['#b96d4c','#d5b575','#b6b5a5','#875e4b'][i%4]);
+   polygon([[x-2,y-h],[x+w*.5,y-h-6],[x+w+2,y-h]],'#634536');
+   box(x+w*.18,y-h*.65,w*.2,h*.22,'#344b59');
+  }
+ }
+
+ // Asfalto visto de lado
+ box(0,H*.43,W,H*.57,'#414445');
+ // Calçada
+ box(0,H*.43,W,5,'#bdb9a1');
+ let spacing=68;
+ for(let y=H*.45+(road%spacing);y<H+spacing;y+=spacing){
+  box(0,y,W,3,'#656767');
+  box(W*.05,y+12,W*.1,5,'#a4a18e');
+  box(W*.85,y+12,W*.1,5,'#a4a18e');
+ }
+ // Marcas centrais da estrada
+ for(let x=-(road%85);x<W;x+=85)box(x,H*.58,43,3,'#d6d2b5');
+}
+
+function drawWheel(x,y,r,angle){
+ ellipse(x,y,r+2,r+2,'#101113');
+ c.save();c.translate(x,y);c.rotate(angle);
+ c.strokeStyle='#aaa';c.lineWidth=2;c.beginPath();c.arc(0,0,r*.7,0,Math.PI*2);c.stroke();
+ for(let i=0;i<8;i++){
+  let a=i*Math.PI/4;
+  line(0,0,Math.cos(a)*r*.7,Math.sin(a)*r*.7,'#888',1);
+ }
+ ellipse(0,0,3,3,'#ddd');c.restore();
+}
+
+function drawBike(x,y){
+ c.save();c.translate(x,y);
+ // Roda dianteira sobe de verdade ao empinar
+ let tilt=wheelie?-.32:0;
+ c.rotate(tilt);
+ let rearX=-36,frontX=35,wheelY=0;
+ let r=bike==='CG'?13:16;
+ drawWheel(rearX,wheelY,r,road*.08);
+ drawWheel(frontX,wheelY,r,road*.08);
+
+ // Quadro e motor
+ line(rearX,0,-14,-18,'#bbb',4);
+ line(-14,-18,12,0,'#bbb',4);
+ line(12,0,frontX,0,'#bbb',4);
+ box(-13,-19,24,18,'#333');
+ box(-9,-17,16,12,'#777');
+
+ // Suspensão e guidão
+ line(12,-21,frontX,-r,'#ccc',4);
+ line(12,-21,frontX+5,-r-8,'#aaa',2);
+ line(frontX,-r,frontX+12,-r-9,'#ddd',3);
+
+ if(bike==='CRF'){
+  // CRF: banco alto e carenagens de trilha
+  polygon([[-27,-35],[-5,-39],[14,-32],[7,-26],[-25,-27]],'#191a1d');
+  polygon([[-10,-32],[9,-34],[20,-23],[4,-18],[-19,-23]],'#e52a27');
+  polygon([[13,-32],[26,-39],[35,-35],[25,-20],[15,-20]],'#f1f1ed');
+  polygon([[-28,-34],[-34,-46],[-20,-44],[-14,-34]],'#eee');
+ }else if(bike==='BROS'){
+  // Bros: tanque central e banco longo
+  polygon([[-28,-32],[-7,-36],[14,-30],[8,-25],[-25,-25]],'#202124');
+  polygon([[-14,-30],[5,-31],[20,-24],[5,-17],[-18,-22]],'#d6d9db');
+  polygon([[12,-30],[24,-35],[34,-29],[26,-18],[15,-19]],'#d92e29');
+  polygon([[-31,-31],[-36,-39],[-26,-39],[-21,-31]],'#ddd');
+ }else{
+  // CG: tanque compacto, banco baixo e motor aparente
+  polygon([[-28,-29],[-10,-34],[7,-30],[12,-24],[-23,-23]],'#191a1d');
+  polygon([[-11,-29],[7,-30],[19,-24],[7,-18],[-13,-21]],'#d72b29');
+  polygon([[13,-27],[26,-31],[32,-27],[26,-17],[15,-18]],'#eee');
+  box(-28,-24,9,4,'#ddd');
+ }
+
+ // Piloto com capacete
+ line(-9,-34,-1,-47,'#24262a',7);
+ line(-1,-47,13,-39,'#24262a',6);
+ line(13,-39,20,-30,'#24262a',5);
+ ellipse(-1,-51,8,8,'#24262a');
+ ellipse(1,-53,7,5,'#ddd');
+ box(4,-54,7,3,'#111');
+
+ // Escape intercambiável
+ let ec=exhaust==='black'?'#111':exhaust==='original'?'#666':'#ddd';
+ line(-22,-13,-8,-10,ec,exhaust==='trioval'?7:4);
+ line(-22,-13,-29,-11,ec,3);
+
+ // Farol e lanterna
+ box(31,-37,8,5,'#fff3a5');box(-40,-7,5,5,'#f33');
+ c.restore();
+}
+
+function drawCar(o){
+ let x=o.x,y=o.y,s=o.s;
+ c.save();c.translate(x,y);c.scale(s,s);
+ // Carro de perfil
+ box(-39,-24,79,29,o.color);
+ box(-23,-39,43,18,o.color);
+ polygon([[-18,-38],[14,-38],[24,-25],[-28,-25]],'#b9e0ed');
+ box(28,-19,12,7,'#fff0a3');
+ box(-39,-17,5,7,'#e33');
+ drawWheel(-23,5,9,road*.1);drawWheel(25,5,9,road*.1);
+ c.restore();
+}
+
+function drawStar(x,y){
+ c.save();c.translate(x,y);c.fillStyle='#ffd333';c.strokeStyle='white';c.lineWidth=2;
+ c.beginPath();
+ for(let i=0;i<10;i++){
+  let a=-Math.PI/2+i*Math.PI/5,r=i%2===0?17:8;
+  if(i===0)c.moveTo(Math.cos(a)*r,Math.sin(a)*r);
+  else c.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+ }
+ c.closePath();c.fill();c.stroke();c.restore();
+}
+
+function drawPoliceCar(){
+ let x=W*.35,y=H*.57;
+ c.save();c.translate(x,y);
+ box(-47,-23,94,34,'#eee');box(-31,-37,53,18,'#eee');
+ box(-23,-35,38,13,'#8ec8e7');box(-46,-9,91,17,'#1764bc');
+ box(-10,-43,14,5,'#f33');box(4,-43,14,5,'#28a6ff');
+ drawWheel(-27,12,9,road*.1);drawWheel(29,12,9,road*.1);
+ label('POLÍCIA',0,3,10,'white');
+ c.restore();
+}
+
+function spawnObject(){
+ let type;
+ if(chased&&Math.random()<.18)type='star';
+ else type=Math.random()<.8?'car':'barrel';
+ let colors=['#d43a32','#e7b62e','#3885b4','#ddd','#308e52'];
+ objects.push({type,x:W+60,y:H*.65,s:.65+Math.random()*.3,
+ color:colors[Math.floor(Math.random()*colors.length)],hit:false});
+}
+
+function update(dt){
+ if(!running||paused)return;
+ if(gas)speed=Math.min(150,speed+55*dt);
+ else speed=Math.max(0,speed-9*dt);
+ if(braking)speed=Math.max(0,speed-100*dt);
+ road+=speed*dt*.8;
+ dist+=speed*dt*.015;
+ wanted=Math.max(0,wanted-dt*1.5);
+ invincible=Math.max(0,invincible-dt);
+
+ if(wheelie&&speed>10)wanted+=dt*13;
+ if(wanted>18)chased=true;
+ if(wanted<=0)chased=false;
+
+ spawn-=dt;
+ if(spawn<=0){spawnObject();spawn=.9+Math.random()*.8}
+
+ let px=W*.24+lean*W*.25;
+ let py=H*.7;
+
+ for(let o of objects){
+  o.x-=speed*dt*1.6;
+  if(o.hit)continue;
+
+  if(o.type==='star'&&o.x<px+35&&o.x>px-35){
+   o.hit=true;wanted=0;chased=false;
+   document.getElementById('msg').textContent='⭐ VOCÊ ESCAPOU!';
+   setTimeout(()=>{if(!paused)document.getElementById('msg').textContent=''},900);
+  }
+
+  // Colisão verdadeira: carro e moto compartilham a mesma faixa vertical
+  if(o.type!=='star'&&invincible<=0&&Math.abs(o.x-px)<42&&Math.abs(o.y-py)<34){
+   o.hit=true;speed=0;invincible=1.3;
+   document.getElementById('msg').textContent='💥 COLISÃO! CUIDADO!';
+   setTimeout(()=>{if(!paused)document.getElementById('msg').textContent=''},900);
+  }
+ }
+ objects=objects.filter(o=>o.x>-100&&!o.hit);
+
+ document.getElementById('score').textContent=Math.floor(dist);
+ document.getElementById('speed').textContent=Math.floor(speed);
+ document.getElementById('police').textContent=chased?'🚨 PERSEGUIDO':'🚔 LIVRE';
+}
+
+function draw(){
+ background();
+ // Carros na pista
+ for(let o of objects){
+  if(o.type==='star')drawStar(o.x,o.y);
+  else if(o.type==='car')drawCar(o);
+  else{
+   c.fillStyle='#c98c2d';c.fillRect(o.x-12,o.y-18,24,27);
+   c.fillStyle='#222';c.fillRect(o.x-8,o.y-12,16,8);
+  }
+ }
+ if(chased)drawPoliceCar();
+
+ // Moto sempre vista de lado
+ let x=W*.24+lean*W*.25;
+ let y=H*.7;
+ if(invincible>0&&Math.floor(invincible*10)%2===0){}
+ else drawBike(x,y);
+
+ if(paused)label('⏸ JOGO PAUSADO',W/2,H*.45,27);
+}
+function loop(now){
+ let dt=Math.min(.04,(now-last)/1000||0);
+ last=now;update(dt);draw();requestAnimationFrame(loop);
+}
+requestAnimationFrame(t=>{last=t;loop(t)});
+</script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Moto Infinita Brasil</title>
 <style>
 *{box-sizing:border-box}
